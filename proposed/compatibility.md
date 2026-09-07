@@ -4,4 +4,7 @@ This document will map each current implementation to the proposed event and con
 
 | Current implementation | Status |
 | --- | --- |
-| Claude Code | Evidence captured; mapping not yet proposed. |
+| Claude Code | Direct baseline; adds `trace_id` and `content_hash` to requests, and `metadata` to responses. |
+
+See the [event comparison](../docs/comparisons/event-comparison.md) and
+[tool-name comparison](../docs/comparisons/tool-name-comparison.md) for cross-agent mappings.

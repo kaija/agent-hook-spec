@@ -1,0 +1,12 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Outbound request blocked by policy"
+  },
+  "metadata": {
+    "auditId": "aud-7788-9900-1122",
+    "latencyMs": 1.25,
+    "triggeredRules": ["rule_network_egress"]
+  }
+}
