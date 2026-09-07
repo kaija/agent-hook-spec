@@ -8,7 +8,8 @@ The repository separates machine-readable schemas from human-readable comparison
 
 The proposal adds only `trace_id`, `content_hash`, and response `metadata`. It does not add
 `escalation`: Claude Code already supports interactive approval with `permissionDecision: "ask"`,
-non-interactive pause/resume with `"defer"`, and allow/deny handling through `PermissionRequest`.
+allow/deny handling through `PermissionRequest`, and pause/resume with `"defer"` in non-interactive
+`claude -p` sessions on Claude Code v2.1.89 or later.
 
 `curl`, `wget`, and similar executables are treated as shell command values rather than portable
 tool names. Cross-agent policy should normalize the shell-tool category, then inspect its command.

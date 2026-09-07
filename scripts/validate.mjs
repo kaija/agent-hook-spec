@@ -42,21 +42,31 @@ for (const [validate, relativePath] of examples) {
 
 const baselineRequest = await readJson("current/claude-code/examples/pre-tool-use.json");
 const baselineResponse = await readJson("current/claude-code/examples/pre-tool-use-response.json");
-const invalidDirectionCases = [
+const invalidSchemaCases = [
   { ...baselineRequest, metadata: { auditId: "wrong-direction" } },
   { ...baselineResponse, trace_id: "wrong-direction" },
-  { ...baselineResponse, content_hash: "0".repeat(64) }
+  { ...baselineResponse, content_hash: "0".repeat(64) },
+  { ...baselineRequest, content_hash: "not-a-sha256-digest" },
+  { ...baselineResponse, metadata: { latencyMs: -1 } },
+  { ...baselineResponse, metadata: { triggeredRules: [42] } }
 ];
 
-for (const value of invalidDirectionCases) {
-  assert(!validateProposed(value), "proposed schema accepted an extension field in the wrong direction");
+for (const value of invalidSchemaCases) {
+  assert(!validateProposed(value), "proposed schema accepted an invalid extension value");
 }
 
 const hashedRequest = await readJson("proposed/examples/pre-tool-use-with-content-hash.json");
 const expectedHash = hashedRequest.content_hash;
-delete hashedRequest.content_hash;
-const actualHash = createHash("sha256").update(canonicalize(hashedRequest)).digest("hex");
+const canonicalRequest = { ...hashedRequest };
+delete canonicalRequest.content_hash;
+const actualHash = createHash("sha256").update(canonicalize(canonicalRequest)).digest("hex");
 assert.equal(actualHash, expectedHash, "content_hash example does not match its canonical request");
+
+const tamperedRequest = structuredClone(hashedRequest);
+tamperedRequest.tool_input.command = "curl https://unapproved.example";
+delete tamperedRequest.content_hash;
+const tamperedHash = createHash("sha256").update(canonicalize(tamperedRequest)).digest("hex");
+assert.notEqual(tamperedHash, expectedHash, "content_hash failed to detect a mutated request");
 
 for (const relativePath of [
   "current/claude-code/hooks.schema.json",
@@ -66,4 +76,4 @@ for (const relativePath of [
   assert(!/"escalation"\s*:/.test(source), `${relativePath} defines the removed escalation field`);
 }
 
-console.log(`Validated ${examples.length} examples, ${invalidDirectionCases.length} negative cases, and 2 schemas.`);
+console.log(`Validated ${examples.length} examples, ${invalidSchemaCases.length + 1} negative cases, and 2 schemas.`);

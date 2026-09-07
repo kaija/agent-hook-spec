@@ -56,5 +56,6 @@ Returns audit and rule-processing details without changing the permission decisi
 
 ## HITL scope
 
-No `escalation` field is proposed. Claude Code already provides `permissionDecision: "ask"`,
-`permissionDecision: "defer"`, and `PermissionRequest` for approval flows.
+No `escalation` field is proposed. Claude Code already provides interactive approval through
+`permissionDecision: "ask"` and `PermissionRequest`. Claude Code v2.1.89 or later also supports
+`permissionDecision: "defer"` for pause/resume in non-interactive `claude -p` sessions.
