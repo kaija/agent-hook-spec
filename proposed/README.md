@@ -1,13 +1,14 @@
 # Proposed agent-hook specification
 
-This folder is reserved for the normative, cross-agent hook specification. It must not copy a single runtime's contract wholesale.
+This folder contains a Claude Code–based extension proposal. It keeps the current runtime contract
+separate from fields added for portable tracing, content identity, and receiver metadata.
 
-## Planned deliverables
+## Contents
 
-- `spec.md` — lifecycle, transport, compatibility, and decision semantics.
-- `schema/` — normative JSON Schema documents for event requests and responses.
-- `examples/` — portable hook examples and conformance fixtures.
-- `compatibility.md` — mapping from current agent implementations to the proposed model.
+- [Extension rationale and JSON diffs](spec.md)
+- [Proposed JSON Schema](schema/hooks.schema.json)
+- [Examples](examples/)
+- [Compatibility mapping](compatibility.md)
 
 ## Drafting principles
 

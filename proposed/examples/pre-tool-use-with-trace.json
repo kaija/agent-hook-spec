@@ -1,0 +1,14 @@
+{
+  "session_id": "abc123",
+  "trace_id": "tr-9b8c-1234-5678",
+  "transcript_path": "/var/agent/sessions/abc123.jsonl",
+  "cwd": "/workspace/project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "curl https://example.com",
+    "description": "Fetch status page"
+  },
+  "tool_use_id": "toolu_01ABC123"
+}
