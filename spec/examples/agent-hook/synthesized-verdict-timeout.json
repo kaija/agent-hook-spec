@@ -1,0 +1,6 @@
+{
+  "decision": "allow",
+  "reason": "host_error:hook_timeout",
+  "message": "Policy hook did not respond within 5000 ms; fail-open default applied.",
+  "synthesized": true
+}

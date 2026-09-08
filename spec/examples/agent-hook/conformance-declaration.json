@@ -1,0 +1,55 @@
+{
+  "spec_version": "agent-hooks/0.1",
+  "host": "example-agent",
+  "host_version": "3.2.0",
+  "core_events": {
+    "SessionStart": true,
+    "UserPromptSubmit": true,
+    "BeforeModelRequest": false,
+    "AfterModelResponse": false,
+    "PreToolUse": true,
+    "PostToolUse": true,
+    "PostToolUseFailure": true,
+    "PermissionRequest": true,
+    "PermissionDenied": true,
+    "SubagentStart": true,
+    "SubagentStop": true,
+    "Stop": true,
+    "SessionEnd": true
+  },
+  "extended_events": [
+    "PreCompact",
+    "PostCompact",
+    "Notification"
+  ],
+  "vendor_events": [
+    "x-example/PolicyReload"
+  ],
+  "failure_posture": "fail_open",
+  "strict_mode_available": true,
+  "enforcement_modes": [
+    "enforce",
+    "evaluate_only"
+  ],
+  "default_timeout_ms": 5000,
+  "context_support": [
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "SessionStart"
+  ],
+  "transform_support": [
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure"
+  ],
+  "continue_support": [
+    "PostToolUse",
+    "PostToolUseFailure"
+  ],
+  "approval_seam": {
+    "ask": true,
+    "defer": false
+  }
+}

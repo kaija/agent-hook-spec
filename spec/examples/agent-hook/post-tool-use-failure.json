@@ -1,0 +1,30 @@
+{
+  "spec": "agent-hooks/0.1",
+  "hook_event_name": "PostToolUseFailure",
+  "session_id": "3f1a9c2e-8b47-4d51-9e0a-6c2d7f8b1a30",
+  "timestamp": "2026-09-08T11:40:56.000Z",
+  "sequence": 8,
+  "cwd": "/Users/dev/project",
+  "trace": {
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba90208",
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba90208-01"
+  },
+  "agent": {
+    "id": "main",
+    "framework": "example-agent",
+    "version": "3.2.0"
+  },
+  "turn_id": "turn_04",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/Users/dev/project/config/overrides.json"
+  },
+  "tool_use_id": "toolu_01ABC125",
+  "error": {
+    "type": "ENOENT",
+    "message": "No such file or directory"
+  },
+  "is_interrupt": false,
+  "duration_ms": 3
+}

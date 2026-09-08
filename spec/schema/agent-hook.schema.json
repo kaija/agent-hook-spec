@@ -1,0 +1,648 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/kaija/agent-hook-spec/main/spec/schema/agent-hook.schema.json",
+  "title": "Agent Hook Specification 0.1",
+  "$comment": "Canonical cross-agent schema for spec/proposal.md. Distinct from claude-code-hook.schema.json (a single vendor's documented contract) and proposed-hook.schema.json (that baseline plus three optional fields). This file is hand-written and is not produced by scripts/build-proposed-schema.mjs.",
+  "description": "Machine-validatable schema for the canonical agent hook contract defined in spec/proposal.md. The root validates any hook request. Use #/$defs/verdictsByEvent/<EventName> for an event-specific verdict, #/$defs/Verdict for a verdict on any event, and #/$defs/ConformanceDeclaration for a host declaration.",
+  "$ref": "#/$defs/HookRequest",
+  "$defs": {
+    "SpecVersion": {
+      "type": "string",
+      "pattern": "^agent-hooks/[0-9]+\\.[0-9]+$",
+      "description": "Specification version this request conforms to. See proposal.md section 4.1.",
+      "examples": ["agent-hooks/0.1"]
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "description": "RFC 3339 instant in UTC. See proposal.md section 4.1.",
+      "examples": ["2026-09-08T11:42:07.318Z"]
+    },
+    "JsonPointer": {
+      "type": "string",
+      "pattern": "^(/([^/~]|~[01])*)*$",
+      "description": "RFC 6901 JSON Pointer resolved against the event's $target, not against the request root. The empty string addresses the entire target. See proposal.md section 5.4.",
+      "examples": ["", "/command", "/stdout"]
+    },
+    "CoreEventName": {
+      "enum": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "BeforeModelRequest",
+        "AfterModelResponse",
+        "PreToolUse",
+        "PostToolUse",
+        "PostToolUseFailure",
+        "PermissionRequest",
+        "PermissionDenied",
+        "SubagentStart",
+        "SubagentStop",
+        "Stop",
+        "SessionEnd"
+      ],
+      "description": "The thirteen Core events a conforming host MUST emit. See proposal.md section 3.1."
+    },
+    "ExtendedEventName": {
+      "enum": [
+        "Setup",
+        "InstructionsLoaded",
+        "UserPromptExpansion",
+        "MessageDisplay",
+        "ReasoningBlockCompleted",
+        "BeforeToolSelection",
+        "PostToolBatch",
+        "Notification",
+        "TaskCreated",
+        "TaskCompleted",
+        "TaskExecutionStarted",
+        "TaskExecutionCompleted",
+        "StopFailure",
+        "TurnInterrupted",
+        "TeammateIdle",
+        "ConfigChange",
+        "CwdChanged",
+        "DirectoryAdded",
+        "FileChanged",
+        "WorktreeCreate",
+        "WorktreeRemove",
+        "PreCompact",
+        "PostCompact",
+        "PreModelSwitch",
+        "PostModelSwitch",
+        "Elicitation",
+        "ElicitationResult",
+        "NetworkAccessRequest"
+      ],
+      "description": "The open Extended registry. A host MAY emit these; if it does, it MUST use the canonical name. See proposal.md section 3.2."
+    },
+    "VendorEventName": {
+      "type": "string",
+      "pattern": "^x-[a-z][a-z0-9-]*/[A-Za-z][A-Za-z0-9]*$",
+      "description": "Vendor event outside the registry, namespaced x-<vendor>/. See proposal.md section 3.3.",
+      "examples": ["x-acme/PolicyReload"]
+    },
+    "EventName": {
+      "anyOf": [
+        { "$ref": "#/$defs/CoreEventName" },
+        { "$ref": "#/$defs/ExtendedEventName" },
+        { "$ref": "#/$defs/VendorEventName" }
+      ]
+    },
+    "TraceContext": {
+      "type": "object",
+      "description": "W3C Trace Context. Host-to-hook only; a verdict MUST NOT carry it. See proposal.md section 10.2.",
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$",
+          "not": { "const": "00000000000000000000000000000000" },
+          "examples": ["4bf92f3577b34da6a3ce929d0e0e4736"]
+        },
+        "span_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "not": { "const": "0000000000000000" },
+          "examples": ["00f067aa0ba902b7"]
+        },
+        "traceparent": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+          "examples": ["00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"]
+        }
+      },
+      "required": ["trace_id", "span_id"],
+      "additionalProperties": true
+    },
+    "Agent": {
+      "type": "object",
+      "description": "Emitting agent identity. See proposal.md section 4.1.",
+      "properties": {
+        "id": { "type": "string" },
+        "framework": { "type": "string", "examples": ["claude-code", "gemini-cli", "cursor"] },
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "required": ["id", "framework"],
+      "additionalProperties": true
+    },
+    "Model": {
+      "type": "object",
+      "description": "Model identity and request parameters. Maps to gen_ai.request.model and gen_ai.provider.name; see proposal.md Annex A.2.",
+      "properties": {
+        "id": { "type": "string", "examples": ["claude-opus-5"] },
+        "vendor": { "type": "string", "examples": ["anthropic"] },
+        "params": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["id"],
+      "additionalProperties": true
+    },
+    "Extensions": {
+      "type": "object",
+      "description": "Vendor-namespaced fields. Namespaces agent_hooks, ocsf, and otel are reserved to this specification. See proposal.md section 4.1.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": { "type": "object" }
+    },
+    "CommonRequest": {
+      "type": "object",
+      "description": "Fields carried by every request. See proposal.md section 4.1.",
+      "properties": {
+        "spec": { "$ref": "#/$defs/SpecVersion" },
+        "hook_event_name": { "$ref": "#/$defs/EventName" },
+        "session_id": { "type": "string" },
+        "timestamp": { "$ref": "#/$defs/Timestamp" },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Strictly increasing within a session, across all events including subagent events. See proposal.md section 10.1."
+        },
+        "cwd": { "type": "string" },
+        "trace": { "$ref": "#/$defs/TraceContext" },
+        "agent": { "$ref": "#/$defs/Agent" },
+        "turn_id": { "type": "string" },
+        "permission_mode": { "type": "string" },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lowercase hex SHA-256 of the RFC 8785 canonicalization of this request with content_hash removed. Not an authenticity mechanism; see proposal.md section 10.3.",
+          "examples": ["091beb03976dfcbfda17a51cc63db073353b2e971531c63f974aba155b3388f5"]
+        },
+        "extensions": { "$ref": "#/$defs/Extensions" }
+      },
+      "required": ["spec", "hook_event_name", "session_id", "timestamp", "sequence", "cwd"],
+      "additionalProperties": true
+    },
+    "requestsByEvent": {
+      "SessionStart": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "SessionStart" },
+              "source": { "enum": ["startup", "resume", "clear", "compact", "fork"] },
+              "model": { "$ref": "#/$defs/Model" }
+            },
+            "required": ["hook_event_name", "source"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "UserPromptSubmit": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "UserPromptSubmit" },
+              "prompt": { "type": "string" }
+            },
+            "required": ["hook_event_name", "prompt"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "BeforeModelRequest": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "BeforeModelRequest" },
+              "model": { "$ref": "#/$defs/Model" },
+              "messages": {
+                "type": "array",
+                "description": "The full message array about to be dispatched. This is the $target for transform on this event.",
+                "items": { "type": "object", "additionalProperties": true }
+              },
+              "tools": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["hook_event_name", "model", "messages"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "AfterModelResponse": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "AfterModelResponse" },
+              "model": { "$ref": "#/$defs/Model" },
+              "response": {
+                "type": "object",
+                "description": "A complete model response. Emitted once per response, never per streamed chunk; see proposal.md section 12.1.",
+                "properties": {
+                  "content": { "type": "string" },
+                  "tool_calls": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+                  "finish_reason": { "type": "string" }
+                },
+                "additionalProperties": true
+              },
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "input_tokens": { "type": "integer", "minimum": 0 },
+                  "output_tokens": { "type": "integer", "minimum": 0 }
+                },
+                "additionalProperties": true
+              }
+            },
+            "required": ["hook_event_name", "model", "response"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "PreToolUse": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "PreToolUse" },
+              "tool_name": { "type": "string" },
+              "tool_input": {
+                "type": "object",
+                "description": "Tool-specific arguments. Validate by tool_name, never as a fixed schema. This is the $target for transform on this event.",
+                "additionalProperties": true
+              },
+              "tool_use_id": { "type": "string" }
+            },
+            "required": ["hook_event_name", "tool_name", "tool_input", "tool_use_id"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "PostToolUse": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "PostToolUse" },
+              "tool_name": { "type": "string" },
+              "tool_input": { "type": "object", "additionalProperties": true },
+              "tool_use_id": { "type": "string" },
+              "tool_response": {
+                "type": "object",
+                "description": "Structured tool result. This is the $target for transform on this event.",
+                "additionalProperties": true
+              },
+              "duration_ms": { "type": "number", "minimum": 0 }
+            },
+            "required": ["hook_event_name", "tool_name", "tool_input", "tool_use_id", "tool_response"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "PostToolUseFailure": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "PostToolUseFailure" },
+              "tool_name": { "type": "string" },
+              "tool_input": { "type": "object", "additionalProperties": true },
+              "tool_use_id": { "type": "string" },
+              "error": {
+                "type": "object",
+                "description": "Failure detail. This is the $target for transform on this event.",
+                "properties": {
+                  "type": { "type": "string" },
+                  "message": { "type": "string" }
+                },
+                "required": ["type", "message"],
+                "additionalProperties": true
+              },
+              "is_interrupt": { "type": "boolean" },
+              "duration_ms": { "type": "number", "minimum": 0 }
+            },
+            "required": ["hook_event_name", "tool_name", "tool_input", "tool_use_id", "error"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "PermissionRequest": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "$comment": "Intentionally omits tool_use_id: the approval decision precedes the creation of a tool-use identity. See proposal.md section 4.3.",
+            "properties": {
+              "hook_event_name": { "const": "PermissionRequest" },
+              "tool_name": { "type": "string" },
+              "tool_input": { "type": "object", "additionalProperties": true },
+              "suggestions": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+            },
+            "required": ["hook_event_name", "tool_name", "tool_input"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "PermissionDenied": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "PermissionDenied" },
+              "tool_name": { "type": "string" },
+              "tool_input": { "type": "object", "additionalProperties": true },
+              "tool_use_id": { "type": "string" },
+              "reason": { "type": "string" },
+              "denied_by": {
+                "enum": ["user", "policy", "hook", "host"],
+                "description": "Source of the refusal. Required so refusal is independently auditable rather than inferred; see proposal.md section 9.2."
+              }
+            },
+            "required": ["hook_event_name", "tool_name", "tool_input", "tool_use_id", "reason", "denied_by"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "SubagentStart": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "SubagentStart" },
+              "agent_id": { "type": "string" },
+              "agent_type": { "type": "string" },
+              "parent_agent_id": {
+                "type": "string",
+                "description": "Absent for a top-level spawn. Receivers reconstruct the delegation tree from this field; see proposal.md section 12.3."
+              }
+            },
+            "required": ["hook_event_name", "agent_id", "agent_type"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "SubagentStop": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "SubagentStop" },
+              "agent_id": { "type": "string" },
+              "agent_type": { "type": "string" },
+              "last_assistant_message": { "type": "string" }
+            },
+            "required": ["hook_event_name", "agent_id", "agent_type"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "Stop": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "Stop" },
+              "turn_id": { "type": "string" },
+              "last_assistant_message": { "type": "string" }
+            },
+            "required": ["hook_event_name", "turn_id"],
+            "additionalProperties": true
+          }
+        ]
+      },
+      "SessionEnd": {
+        "allOf": [
+          { "$ref": "#/$defs/CommonRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "hook_event_name": { "const": "SessionEnd" },
+              "reason": { "enum": ["clear", "resume", "logout", "exit", "error", "other"] }
+            },
+            "required": ["hook_event_name", "reason"],
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "HookRequest": {
+      "description": "Any hook request. Core events are validated against their event-specific definition; Extended and vendor events are validated against the common envelope only, since their payloads are host-defined until registered.",
+      "allOf": [
+        { "$ref": "#/$defs/CommonRequest" },
+        {
+          "anyOf": [
+            { "$ref": "#/$defs/requestsByEvent/SessionStart" },
+            { "$ref": "#/$defs/requestsByEvent/UserPromptSubmit" },
+            { "$ref": "#/$defs/requestsByEvent/BeforeModelRequest" },
+            { "$ref": "#/$defs/requestsByEvent/AfterModelResponse" },
+            { "$ref": "#/$defs/requestsByEvent/PreToolUse" },
+            { "$ref": "#/$defs/requestsByEvent/PostToolUse" },
+            { "$ref": "#/$defs/requestsByEvent/PostToolUseFailure" },
+            { "$ref": "#/$defs/requestsByEvent/PermissionRequest" },
+            { "$ref": "#/$defs/requestsByEvent/PermissionDenied" },
+            { "$ref": "#/$defs/requestsByEvent/SubagentStart" },
+            { "$ref": "#/$defs/requestsByEvent/SubagentStop" },
+            { "$ref": "#/$defs/requestsByEvent/Stop" },
+            { "$ref": "#/$defs/requestsByEvent/SessionEnd" },
+            {
+              "type": "object",
+              "properties": {
+                "hook_event_name": {
+                  "anyOf": [
+                    { "$ref": "#/$defs/ExtendedEventName" },
+                    { "$ref": "#/$defs/VendorEventName" }
+                  ]
+                }
+              },
+              "required": ["hook_event_name"]
+            }
+          ]
+        }
+      ]
+    },
+    "TransformOp": {
+      "type": "object",
+      "description": "One replacement operation against the event's $target. See proposal.md section 5.4.",
+      "properties": {
+        "path": { "$ref": "#/$defs/JsonPointer" },
+        "value": true
+      },
+      "required": ["path", "value"],
+      "additionalProperties": false
+    },
+    "Verdict": {
+      "type": "object",
+      "description": "A hook's response. Every field is OPTIONAL; an empty object means observed, no action. decision, context, and transform are independent axes and MAY be combined. See proposal.md section 5.",
+      "properties": {
+        "decision": {
+          "enum": ["allow", "deny", "ask", "defer"],
+          "description": "Gate axis. The vocabulary is closed. Absence is equivalent to allow for gating, but MUST NOT be recorded as an affirmative allow. See proposal.md section 5.2."
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "$comment": "The pattern excludes the reserved host_error: namespace by construction, since ':' is not a permitted character. See proposal.md sections 5.6 and 11.",
+          "examples": ["secret_redacted", "network_egress_blocked"]
+        },
+        "message": { "type": "string" },
+        "context": {
+          "type": "string",
+          "description": "Enrichment injected into the agent's context. Does not alter the gate. See proposal.md section 5.3."
+        },
+        "transform": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TransformOp" },
+          "minItems": 1,
+          "description": "Applied before the decision is honoured, and never when the effective decision is deny. See proposal.md section 5.4.2."
+        },
+        "continue": {
+          "type": "boolean",
+          "description": "false requests that the host end the current turn after resolving this event. Orthogonal to decision. See proposal.md section 5.7."
+        }
+      },
+      "additionalProperties": true
+    },
+    "VerdictNoTransform": {
+      "allOf": [
+        { "$ref": "#/$defs/Verdict" },
+        {
+          "type": "object",
+          "$comment": "Events with no $target forbid transform; a transform here is rejected with host_error:transform_target_forbidden. See proposal.md section 5.5.",
+          "properties": { "transform": false }
+        }
+      ]
+    },
+    "verdictsByEvent": {
+      "$comment": "Encodes the $target table in proposal.md section 5.5: six events permit transform, seven forbid it.",
+      "UserPromptSubmit": { "$ref": "#/$defs/Verdict" },
+      "BeforeModelRequest": { "$ref": "#/$defs/Verdict" },
+      "AfterModelResponse": { "$ref": "#/$defs/Verdict" },
+      "PreToolUse": { "$ref": "#/$defs/Verdict" },
+      "PostToolUse": { "$ref": "#/$defs/Verdict" },
+      "PostToolUseFailure": { "$ref": "#/$defs/Verdict" },
+      "SessionStart": { "$ref": "#/$defs/VerdictNoTransform" },
+      "PermissionRequest": { "$ref": "#/$defs/VerdictNoTransform" },
+      "PermissionDenied": { "$ref": "#/$defs/VerdictNoTransform" },
+      "SubagentStart": { "$ref": "#/$defs/VerdictNoTransform" },
+      "SubagentStop": { "$ref": "#/$defs/VerdictNoTransform" },
+      "Stop": { "$ref": "#/$defs/VerdictNoTransform" },
+      "SessionEnd": { "$ref": "#/$defs/VerdictNoTransform" }
+    },
+    "HostErrorReason": {
+      "enum": [
+        "host_error:context_invalid",
+        "host_error:hook_failed",
+        "host_error:hook_timeout",
+        "host_error:verdict_invalid",
+        "host_error:transform_invalid",
+        "host_error:transform_target_forbidden",
+        "host_error:transform_conflict",
+        "host_error:approval_unavailable",
+        "host_error:approval_unresolved",
+        "host_error:event_unsupported",
+        "host_error:enforcement_unavailable"
+      ],
+      "description": "Closed set of reserved reasons for host-synthesized verdicts. Hooks MUST NOT emit these. See proposal.md section 11."
+    },
+    "SynthesizedVerdict": {
+      "type": "object",
+      "description": "A verdict the host produced on a hook's behalf after a failure. Recorded, never returned by a hook. See proposal.md sections 6.3 and 11.",
+      "properties": {
+        "decision": { "enum": ["allow", "deny"] },
+        "reason": { "$ref": "#/$defs/HostErrorReason" },
+        "message": { "type": "string" },
+        "synthesized": { "const": true }
+      },
+      "required": ["decision", "reason", "synthesized"],
+      "additionalProperties": true
+    },
+    "ConformanceDeclaration": {
+      "type": "object",
+      "description": "A host's published conformance claim. Every field is REQUIRED and core_events MUST list all thirteen keys. See proposal.md section 13.1.",
+      "properties": {
+        "spec_version": { "$ref": "#/$defs/SpecVersion" },
+        "host": { "type": "string" },
+        "host_version": { "type": "string" },
+        "core_events": {
+          "type": "object",
+          "properties": {
+            "SessionStart": { "type": "boolean" },
+            "UserPromptSubmit": { "type": "boolean" },
+            "BeforeModelRequest": { "type": "boolean" },
+            "AfterModelResponse": { "type": "boolean" },
+            "PreToolUse": { "type": "boolean" },
+            "PostToolUse": { "type": "boolean" },
+            "PostToolUseFailure": { "type": "boolean" },
+            "PermissionRequest": { "type": "boolean" },
+            "PermissionDenied": { "type": "boolean" },
+            "SubagentStart": { "type": "boolean" },
+            "SubagentStop": { "type": "boolean" },
+            "Stop": { "type": "boolean" },
+            "SessionEnd": { "type": "boolean" }
+          },
+          "required": [
+            "SessionStart",
+            "UserPromptSubmit",
+            "BeforeModelRequest",
+            "AfterModelResponse",
+            "PreToolUse",
+            "PostToolUse",
+            "PostToolUseFailure",
+            "PermissionRequest",
+            "PermissionDenied",
+            "SubagentStart",
+            "SubagentStop",
+            "Stop",
+            "SessionEnd"
+          ],
+          "additionalProperties": false
+        },
+        "extended_events": { "type": "array", "items": { "$ref": "#/$defs/ExtendedEventName" } },
+        "vendor_events": { "type": "array", "items": { "$ref": "#/$defs/VendorEventName" } },
+        "failure_posture": {
+          "enum": ["fail_open", "fail_closed"],
+          "description": "Disposition of a synthesized failure verdict. See proposal.md section 6.3."
+        },
+        "strict_mode_available": { "type": "boolean" },
+        "enforcement_modes": {
+          "type": "array",
+          "items": { "enum": ["enforce", "evaluate_only"] },
+          "contains": { "const": "enforce" },
+          "description": "A host MUST support enforce. See proposal.md section 8."
+        },
+        "default_timeout_ms": { "type": "integer", "minimum": 0 },
+        "context_support": { "type": "array", "items": { "$ref": "#/$defs/EventName" } },
+        "transform_support": { "type": "array", "items": { "$ref": "#/$defs/EventName" } },
+        "continue_support": { "type": "array", "items": { "$ref": "#/$defs/EventName" } },
+        "approval_seam": {
+          "type": "object",
+          "properties": {
+            "ask": { "type": "boolean" },
+            "defer": { "type": "boolean" }
+          },
+          "required": ["ask", "defer"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "spec_version",
+        "host",
+        "host_version",
+        "core_events",
+        "extended_events",
+        "vendor_events",
+        "failure_posture",
+        "strict_mode_available",
+        "enforcement_modes",
+        "default_timeout_ms",
+        "context_support",
+        "transform_support",
+        "continue_support",
+        "approval_seam"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

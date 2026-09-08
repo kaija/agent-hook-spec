@@ -1,0 +1,5 @@
+{
+  "decision": "ask",
+  "reason": "egress_outside_allowlist",
+  "message": "This command contacts a host outside the egress allowlist. Approve?"
+}

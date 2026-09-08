@@ -1,0 +1,16 @@
+{
+  "decision": "allow",
+  "reason": "secret_redacted",
+  "message": "One environment variable was redacted by policy.",
+  "context": "One environment variable was redacted from this output by policy.",
+  "transform": [
+    {
+      "path": "/stdout",
+      "value": "AWS_SECRET_ACCESS_KEY=[redacted]\nHOME=/root"
+    },
+    {
+      "path": "/stderr",
+      "value": ""
+    }
+  ]
+}

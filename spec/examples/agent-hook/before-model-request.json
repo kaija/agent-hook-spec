@@ -1,0 +1,38 @@
+{
+  "spec": "agent-hooks/0.1",
+  "hook_event_name": "BeforeModelRequest",
+  "session_id": "3f1a9c2e-8b47-4d51-9e0a-6c2d7f8b1a30",
+  "timestamp": "2026-09-08T11:40:14.000Z",
+  "sequence": 2,
+  "cwd": "/Users/dev/project",
+  "trace": {
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba90202",
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba90202-01"
+  },
+  "agent": {
+    "id": "main",
+    "framework": "example-agent",
+    "version": "3.2.0"
+  },
+  "turn_id": "turn_04",
+  "model": {
+    "id": "claude-opus-5",
+    "vendor": "anthropic",
+    "params": {
+      "temperature": 1,
+      "max_tokens": 8192
+    }
+  },
+  "messages": [
+    {
+      "role": "user",
+      "content": "Fetch the internal service config and summarise it."
+    }
+  ],
+  "tools": [
+    "Bash",
+    "Read",
+    "Agent"
+  ]
+}
