@@ -1,2 +1,3 @@
 hook-logs/
 __pycache__/
+.venv/

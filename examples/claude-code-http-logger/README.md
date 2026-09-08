@@ -12,15 +12,17 @@ does not intentionally block the Claude Code lifecycle.
 
 ```bash
 cd examples/claude-code-http-logger
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app:app --host 127.0.0.1 --port 8765
+make up
 ```
 
+`make up` creates `.venv`, installs `requirements.txt`, and starts the server.
 The server writes `hook-logs/claude-code-hooks.ndjson` relative to the process
 directory. Set `HOOK_LOG_DIR` or `HOOK_LOG_FILE` to change that destination.
 Check that it is running with `curl http://127.0.0.1:8765/healthz`.
+
+Use `make dev` while editing to enable reload, `make health` to check the
+endpoint, and override the defaults when needed, for example
+`make up PORT=9000`.
 
 ## Connect every hook
 
