@@ -21,6 +21,10 @@
         "cwd": {
           "type": "string"
         },
+        "scratchpad_dir": {
+          "type": "string",
+          "description": "Absolute path to Claude Code's per-session scratchpad directory when the runtime creates one. Observed on SessionStart, InstructionsLoaded, and SessionEnd payloads."
+        },
         "permission_mode": {
           "enum": [
             "default",

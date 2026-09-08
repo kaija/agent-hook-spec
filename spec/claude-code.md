@@ -16,6 +16,7 @@ Every request contains `session_id`, `transcript_path`, `cwd`, and `hook_event_n
 | Field | When present |
 | --- | --- |
 | `prompt_id` | After the first user input; correlates work in one user prompt. |
+| `scratchpad_dir` | Runtime-created per-session scratchpad directory. Observed on `SessionStart`, `InstructionsLoaded`, and `SessionEnd`; it is not present on every event. |
 | `permission_mode` | Events for which the active permission mode is applicable. |
 | `effort` | Tool-use-context events when the current model supports effort; shape: `{ "level": "low" | "medium" | "high" | "xhigh" | "max" }`. |
 | `agent_id`, `agent_type` | The hook runs inside a subagent, or the session uses `--agent`. |

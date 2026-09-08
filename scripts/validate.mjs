@@ -14,6 +14,28 @@ async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
 }
 
+async function readCapturedHookPayloads(relativePath) {
+  let source;
+  try {
+    source = await readFile(path.join(root, relativePath), "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+
+  return source
+    .split("\n")
+    .filter((line) => line.trim())
+    .map((line, index) => {
+      const record = JSON.parse(line);
+      assert(
+        record.request?.payload && typeof record.request.payload === "object",
+        `${relativePath}:${index + 1} does not contain request.payload`
+      );
+      return { line: index + 1, eventName: record.event_name, payload: record.request.payload };
+    });
+}
+
 function collectRefs(value, refs = []) {
   if (Array.isArray(value)) {
     for (const item of value) collectRefs(item, refs);
@@ -46,6 +68,11 @@ const requestProperties = proposedSchema.$defs.CommonRequest.properties;
 const responseProperties = proposedSchema.$defs.ResponseBase.properties;
 assert(requestProperties.trace_id?.examples?.length, "trace_id must include an inline example");
 assert(requestProperties.content_hash?.examples?.length, "content_hash must include an inline example");
+assert.equal(
+  requestProperties.scratchpad_dir?.type,
+  "string",
+  "scratchpad_dir must be modeled as a common request field"
+);
 assert(responseProperties.metadata?.examples?.length, "metadata must include an inline example");
 assert(
   proposedSchema.$defs.requestsByEvent.SessionStart.examples?.length,
@@ -99,6 +126,24 @@ for (const [validate, relativePath] of examples) {
   assert(validate(value), `${relativePath}: ${ajv.errorsText(validate.errors)}`);
 }
 
+const capturedPayloads = await readCapturedHookPayloads(
+  "examples/claude-code-http-logger/hook-logs/claude-code-hooks.ndjson"
+);
+for (const { line, eventName, payload } of capturedPayloads) {
+  assert(
+    validators.baselineRequest(payload),
+    `captured ${eventName} payload at line ${line}: ${ajv.errorsText(
+      validators.baselineRequest.errors
+    )}`
+  );
+  assert(
+    validators.proposedRequest(payload),
+    `captured ${eventName} payload at line ${line} is invalid for the proposed schema: ${ajv.errorsText(
+      validators.proposedRequest.errors
+    )}`
+  );
+}
+
 const baselineRequest = await readJson("spec/examples/claude-code/pre-tool-use.json");
 const baselineResponse = await readJson("spec/examples/claude-code/pre-tool-use-response.json");
 const invalidSchemaCases = [
@@ -144,5 +189,5 @@ for (const relativePath of [
 
 console.log(
   `Validated ${examples.length} examples, ${invalidSchemaCases.length + 1} negative cases, ` +
-    "complete event parity, and 2 self-contained schemas."
+    `${capturedPayloads.length} captured payloads, complete event parity, and 2 self-contained schemas.`
 );

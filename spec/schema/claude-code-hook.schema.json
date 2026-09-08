@@ -3,7 +3,7 @@
   "$id": "https://raw.githubusercontent.com/kaija/agent-hook-spec/main/spec/schema/claude-code-hook.schema.json",
   "title": "Claude Code hook payloads",
   "$comment": "Derived from the official Claude Code Hooks documentation; this is not an upstream Anthropic schema file.",
-  "description": "Machine-validatable schemas derived from Anthropic's Claude Code Hooks reference, researched 2026-09-07. The root validates any hook request. For an event-specific response, use #/$defs/responsesByEvent/<EventName>. Tool and MCP payloads remain open because their shape is tool/server-specific.",
+  "description": "Machine-validatable schemas derived from Anthropic's Claude Code Hooks reference and observed HTTP hook payloads, researched 2026-09-08. The root validates any hook request. For an event-specific response, use #/$defs/responsesByEvent/<EventName>. Tool and MCP payloads remain open because their shape is tool/server-specific.",
   "$ref": "#/$defs/HookRequest",
   "$defs": {
     "CommonRequest": {
@@ -20,6 +20,10 @@
         },
         "cwd": {
           "type": "string"
+        },
+        "scratchpad_dir": {
+          "type": "string",
+          "description": "Absolute path to Claude Code's per-session scratchpad directory when the runtime creates one. Observed on SessionStart, InstructionsLoaded, and SessionEnd payloads."
         },
         "permission_mode": {
           "enum": [
