@@ -2,7 +2,10 @@
 
 > Source of truth: Anthropic’s [Claude Code Hooks reference](https://code.claude.com/docs/en/hooks). This document was researched on 2026-09-07. The official reference describes event-specific JSON contracts; it does not publish a single downloadable JSON Schema document. This is a description of Claude Code as implemented today, not the proposed cross-agent specification.
 
-The executable [derived JSON Schema bundle](hooks.schema.json) is Draft 2020-12. Use `#/$defs/requestsByEvent/<EventName>` for incoming payloads and `#/$defs/responsesByEvent/<EventName>` for the corresponding JSON response. It permits additional properties so new Claude Code fields and MCP server-defined tool shapes remain valid.
+The executable [derived JSON Schema bundle](schema/claude-code-hook.schema.json) is Draft 2020-12.
+Use `#/$defs/requestsByEvent/<EventName>` for incoming payloads and
+`#/$defs/responsesByEvent/<EventName>` for the corresponding JSON response. It permits additional
+properties so new Claude Code fields and MCP server-defined tool shapes remain valid.
 
 ## Transport and common envelopes
 

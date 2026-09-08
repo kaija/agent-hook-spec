@@ -21,4 +21,6 @@ That fragmentation makes a hook portable only in appearance. A policy written fo
 
 ## Approach
 
-The `current/` directory preserves implementation-specific evidence. The `proposed/` directory is deliberately separate so the cross-agent design can be reviewed on its own merits, with every proposed field traced to an interoperability need rather than mistaken for existing behavior.
+The `spec/schema/` directory keeps the Claude Code baseline beside the proposed complete schema so
+their differences are easy to inspect. Every proposed field is traced to an interoperability need
+rather than presented as existing Claude Code behavior.

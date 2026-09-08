@@ -6,5 +6,5 @@ This document will map each current implementation to the proposed event and con
 | --- | --- |
 | Claude Code | Direct baseline; adds `trace_id` and `content_hash` to requests, and `metadata` to responses. |
 
-See the [event comparison](../docs/comparisons/event-comparison.md) and
-[tool-name comparison](../docs/comparisons/tool-name-comparison.md) for cross-agent mappings.
+See the [event comparison](event-comparison.md) and
+[tool-name comparison](tool-name-comparison.md) for cross-agent mappings.

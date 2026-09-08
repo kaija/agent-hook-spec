@@ -14,34 +14,93 @@ async function readJson(relativePath) {
   return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
 }
 
-const baselineSchema = await readJson("current/claude-code/hooks.schema.json");
-const proposedSchema = await readJson("proposed/schema/hooks.schema.json");
+function collectRefs(value, refs = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectRefs(item, refs);
+  } else if (value && typeof value === "object") {
+    if (typeof value.$ref === "string") refs.push(value.$ref);
+    for (const item of Object.values(value)) collectRefs(item, refs);
+  }
+  return refs;
+}
+
+const baselineSchema = await readJson("spec/schema/claude-code-hook.schema.json");
+const proposedSchema = await readJson("spec/schema/proposed-hook.schema.json");
+
+assert.deepEqual(
+  Object.keys(proposedSchema.$defs.requestsByEvent).sort(),
+  Object.keys(baselineSchema.$defs.requestsByEvent).sort(),
+  "proposed schema must include every baseline request event"
+);
+assert.deepEqual(
+  Object.keys(proposedSchema.$defs.responsesByEvent).sort(),
+  Object.keys(baselineSchema.$defs.responsesByEvent).sort(),
+  "proposed schema must include every baseline response event"
+);
+assert(
+  collectRefs(proposedSchema).every((ref) => ref.startsWith("#")),
+  "proposed schema must be self-contained"
+);
+
+const requestProperties = proposedSchema.$defs.CommonRequest.properties;
+const responseProperties = proposedSchema.$defs.ResponseBase.properties;
+assert(requestProperties.trace_id?.examples?.length, "trace_id must include an inline example");
+assert(requestProperties.content_hash?.examples?.length, "content_hash must include an inline example");
+assert(responseProperties.metadata?.examples?.length, "metadata must include an inline example");
+assert(
+  proposedSchema.$defs.requestsByEvent.SessionStart.examples?.length,
+  "SessionStart request must include a complete example"
+);
+assert(
+  proposedSchema.$defs.requestsByEvent.PreToolUse.examples?.length >= 2,
+  "PreToolUse request must include trace and content-hash examples"
+);
+assert(
+  proposedSchema.$defs.responsesByEvent.PreToolUse.examples?.length,
+  "PreToolUse response must include a metadata example"
+);
+assert(
+  proposedSchema.$defs.responsesByEvent.PostToolUse.examples?.length,
+  "PostToolUse response must include a metadata example"
+);
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
 ajv.addSchema(baselineSchema);
+ajv.addSchema(proposedSchema);
 
-const validateBaselineRequest = ajv.getSchema(baselineSchema.$id);
-const validateBaselineResponse = ajv.compile({
-  $ref: `${baselineSchema.$id}#/$defs/responsesByEvent/PreToolUse`
-});
-const validateProposed = ajv.compile(proposedSchema);
+const validators = {
+  baselineRequest: ajv.getSchema(baselineSchema.$id),
+  baselinePreToolResponse: ajv.getSchema(
+    `${baselineSchema.$id}#/$defs/responsesByEvent/PreToolUse`
+  ),
+  proposedRequest: ajv.getSchema(proposedSchema.$id),
+  proposedPreToolResponse: ajv.getSchema(
+    `${proposedSchema.$id}#/$defs/responsesByEvent/PreToolUse`
+  ),
+  proposedPostToolResponse: ajv.getSchema(
+    `${proposedSchema.$id}#/$defs/responsesByEvent/PostToolUse`
+  )
+};
 
 const examples = [
-  [validateBaselineRequest, "current/claude-code/examples/pre-tool-use.json"],
-  [validateBaselineResponse, "current/claude-code/examples/pre-tool-use-response.json"],
-  [validateProposed, "proposed/examples/pre-tool-use-with-trace.json"],
-  [validateProposed, "proposed/examples/pre-tool-use-with-content-hash.json"],
-  [validateProposed, "proposed/examples/pre-tool-use-response-with-metadata.json"]
+  [validators.baselineRequest, "spec/examples/claude-code/pre-tool-use.json"],
+  [validators.baselinePreToolResponse, "spec/examples/claude-code/pre-tool-use-response.json"],
+  [validators.proposedRequest, "spec/examples/proposed/pre-tool-use-with-trace.json"],
+  [validators.proposedRequest, "spec/examples/proposed/pre-tool-use-with-content-hash.json"],
+  [validators.proposedRequest, "spec/examples/proposed/session-start-with-trace.json"],
+  [validators.proposedPreToolResponse, "spec/examples/proposed/pre-tool-use-response-with-metadata.json"],
+  [validators.proposedPostToolResponse, "spec/examples/proposed/post-tool-use-response-with-metadata.json"]
 ];
 
 for (const [validate, relativePath] of examples) {
+  assert(validate, `validator not found for ${relativePath}`);
   const value = await readJson(relativePath);
   assert(validate(value), `${relativePath}: ${ajv.errorsText(validate.errors)}`);
 }
 
-const baselineRequest = await readJson("current/claude-code/examples/pre-tool-use.json");
-const baselineResponse = await readJson("current/claude-code/examples/pre-tool-use-response.json");
+const baselineRequest = await readJson("spec/examples/claude-code/pre-tool-use.json");
+const baselineResponse = await readJson("spec/examples/claude-code/pre-tool-use-response.json");
 const invalidSchemaCases = [
   { ...baselineRequest, metadata: { auditId: "wrong-direction" } },
   { ...baselineResponse, trace_id: "wrong-direction" },
@@ -52,10 +111,17 @@ const invalidSchemaCases = [
 ];
 
 for (const value of invalidSchemaCases) {
-  assert(!validateProposed(value), "proposed schema accepted an invalid extension value");
+  if (value.hook_event_name) {
+    assert(!validators.proposedRequest(value), "request schema accepted an invalid extension value");
+  } else {
+    assert(
+      !validators.proposedPreToolResponse(value),
+      "response schema accepted an invalid extension value"
+    );
+  }
 }
 
-const hashedRequest = await readJson("proposed/examples/pre-tool-use-with-content-hash.json");
+const hashedRequest = await readJson("spec/examples/proposed/pre-tool-use-with-content-hash.json");
 const expectedHash = hashedRequest.content_hash;
 const canonicalRequest = { ...hashedRequest };
 delete canonicalRequest.content_hash;
@@ -69,11 +135,14 @@ const tamperedHash = createHash("sha256").update(canonicalize(tamperedRequest)).
 assert.notEqual(tamperedHash, expectedHash, "content_hash failed to detect a mutated request");
 
 for (const relativePath of [
-  "current/claude-code/hooks.schema.json",
-  "proposed/schema/hooks.schema.json"
+  "spec/schema/claude-code-hook.schema.json",
+  "spec/schema/proposed-hook.schema.json"
 ]) {
   const source = await readFile(path.join(root, relativePath), "utf8");
   assert(!/"escalation"\s*:/.test(source), `${relativePath} defines the removed escalation field`);
 }
 
-console.log(`Validated ${examples.length} examples, ${invalidSchemaCases.length + 1} negative cases, and 2 schemas.`);
+console.log(
+  `Validated ${examples.length} examples, ${invalidSchemaCases.length + 1} negative cases, ` +
+    "complete event parity, and 2 self-contained schemas."
+);

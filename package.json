@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node scripts/validate.mjs"
+    "build:schema": "node scripts/build-proposed-schema.mjs",
+    "check:schema": "node scripts/build-proposed-schema.mjs --check",
+    "test": "npm run check:schema && node scripts/validate.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

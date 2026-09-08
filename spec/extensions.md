@@ -2,8 +2,8 @@
 
 Status: draft.
 
-The [proposed schema](schema/hooks.schema.json) composes the current Claude Code contract and adds
-three optional fields for cross-system operation.
+The [proposed schema](schema/proposed-hook.schema.json) contains the complete Claude Code contract
+and adds three optional fields for cross-system operation.
 
 ## 1. Distributed tracing: `trace_id`
 
@@ -17,8 +17,8 @@ Correlates one request across the runtime, hook receiver, subagents, and observa
  }
 ```
 
-[Baseline request](../current/claude-code/examples/pre-tool-use.json) ·
-[Proposed request](examples/pre-tool-use-with-trace.json)
+[Baseline request](examples/claude-code/pre-tool-use.json) ·
+[Proposed request](examples/proposed/pre-tool-use-with-trace.json)
 
 ## 2. Content identity: `content_hash`
 
@@ -33,8 +33,8 @@ authenticity requires TLS and/or a signature or MAC.
  }
 ```
 
-[Baseline request](../current/claude-code/examples/pre-tool-use.json) ·
-[Proposed request](examples/pre-tool-use-with-content-hash.json)
+[Baseline request](examples/claude-code/pre-tool-use.json) ·
+[Proposed request](examples/proposed/pre-tool-use-with-content-hash.json)
 
 ## 3. Receiver context: `metadata`
 
@@ -51,8 +51,8 @@ Returns audit and rule-processing details without changing the permission decisi
  }
 ```
 
-[Baseline response](../current/claude-code/examples/pre-tool-use-response.json) ·
-[Proposed response](examples/pre-tool-use-response-with-metadata.json)
+[Baseline response](examples/claude-code/pre-tool-use-response.json) ·
+[Proposed response](examples/proposed/pre-tool-use-response-with-metadata.json)
 
 ## HITL scope
 

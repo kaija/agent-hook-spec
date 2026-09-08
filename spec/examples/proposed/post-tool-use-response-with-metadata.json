@@ -1,0 +1,11 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": "The outbound response passed policy checks."
+  },
+  "metadata": {
+    "auditId": "aud-7788-9900-2233",
+    "latencyMs": 2.4,
+    "triggeredRules": ["rule_network_egress"]
+  }
+}
