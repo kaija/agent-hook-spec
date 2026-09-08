@@ -1,0 +1,14 @@
+{
+  "decision": "allow",
+  "reason": "command_hardened",
+  "transform": [
+    {
+      "path": "",
+      "value": {
+        "command": "curl --proto '=https' --max-time 30 https://internal.example/api",
+        "description": "Fetch service config",
+        "timeout": 120000
+      }
+    }
+  ]
+}

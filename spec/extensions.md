@@ -1,6 +1,11 @@
 # Claude Code–based hook extensions
 
-Status: draft.
+Status: superseded in part by [the cross-agent proposal](proposal.md).
+
+This document describes three optional fields added to the **Claude Code** contract, and remains
+the rationale for `spec/schema/proposed-hook.schema.json`. Where it and `proposal.md` describe the
+same field, `proposal.md` governs the canonical cross-agent contract and this document governs the
+Claude Code extension.
 
 The [proposed schema](schema/proposed-hook.schema.json) contains the complete Claude Code contract
 and adds three optional fields for cross-system operation.
@@ -8,6 +13,11 @@ and adds three optional fields for cross-system operation.
 ## 1. Distributed tracing: `trace_id`
 
 Correlates one request across the runtime, hook receiver, subagents, and observability systems.
+
+> **Superseded for cross-agent use.** [`proposal.md` §10.2](proposal.md#10-correlation-and-content-identity)
+> replaces this free-form string with a W3C Trace Context object (`trace_id`, `span_id`,
+> `traceparent`), so hook activity correlates with the surrounding application trace. The flat
+> `trace_id` below remains the Claude Code extension.
 
 ```diff
  {

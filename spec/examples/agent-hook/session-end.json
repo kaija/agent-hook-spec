@@ -1,0 +1,19 @@
+{
+  "spec": "agent-hooks/0.1",
+  "hook_event_name": "SessionEnd",
+  "session_id": "3f1a9c2e-8b47-4d51-9e0a-6c2d7f8b1a30",
+  "timestamp": "2026-09-08T11:41:24.000Z",
+  "sequence": 12,
+  "cwd": "/Users/dev/project",
+  "trace": {
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "span_id": "00f067aa0ba9020c",
+    "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba9020c-01"
+  },
+  "agent": {
+    "id": "main",
+    "framework": "example-agent",
+    "version": "3.2.0"
+  },
+  "reason": "exit"
+}

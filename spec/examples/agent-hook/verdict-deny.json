@@ -1,0 +1,5 @@
+{
+  "decision": "deny",
+  "reason": "plaintext_transport",
+  "message": "Plaintext transport to an internal host is not permitted. Use https."
+}

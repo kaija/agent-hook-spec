@@ -1,16 +1,41 @@
 # Agent Hook Spec
 
-Claude Code hook schemas, proposed extensions, and cross-agent naming comparisons.
+A cross-agent hook specification, the Claude Code baseline it was derived from, and the
+eight-runtime comparison that grounds it.
+
+## The specification
+
+**[spec/proposal.md](spec/proposal.md)** — Status: Draft · Version 0.1.0
+
+A transport-neutral contract: 13 Core events a conforming host MUST emit, a request envelope, and a
+verdict whose gate, enrichment, and mutation axes are independent. Core events are drawn from
+[AITF](https://github.com/girdav01/AITF)'s OCSF observable-action classes, so a policy layer can
+reconstruct what was asked, sent, returned, executed, approved, and delegated. Document conventions
+follow [responsibleai/agent-hooks](https://responsibleai.github.io/agent-hooks/spec/); the
+eight-point interception model does not (§3.5).
+
+Two findings, computed from the comparison table:
+
+- **No surveyed host emits all 13 Core events.** Claude Code leads at 11/13.
+- **Five of eight hosts expose no model-call boundary**, so prompt injection arriving through tool
+  output is unobservable at any hook on those hosts (§14.2). `PermissionDenied` is emitted by one of
+  eight, so refusal is not independently auditable elsewhere.
 
 ## Schemas
 
-- [Claude Code original schema](spec/schema/claude-code-hook.schema.json)
-- [Proposed complete schema](spec/schema/proposed-hook.schema.json)
+- [Canonical cross-agent schema](spec/schema/agent-hook.schema.json) — the contract above
+- [Claude Code original schema](spec/schema/claude-code-hook.schema.json) — one vendor's baseline
+- [Proposed complete schema](spec/schema/proposed-hook.schema.json) — that baseline plus three fields
 
-Both files are self-contained Draft 2020-12 JSON Schemas. The proposed schema contains every
-Claude Code request and event-specific response definition, then adds three optional fields.
+All three are self-contained Draft 2020-12 JSON Schemas, and all three are validated by `npm test`.
+They are not versions of one another: the canonical schema is hand-written, the proposed schema is
+generated from the baseline and parity-locked to it. See [spec/schema/README.md](spec/schema/README.md).
 
-## Proposed improvements
+## Claude Code extensions
+
+These three fields extend the Claude Code contract specifically. `trace_id` is superseded for
+cross-agent use by [proposal.md §10.2](spec/proposal.md#10-correlation-and-content-identity), which
+uses W3C Trace Context.
 
 ### 1. Distributed tracing: `trace_id`
 
