@@ -402,3 +402,94 @@ console.log(
   `Validated ${canonicalChecks} canonical vectors, ${canonicalNegativeCases.length} negative cases, ` +
     `${overlapCases.length} pointer-overlap cases, and 13 Core events against the canonical schema.`
 );
+
+// --- Registry consistency (proposal.md, comparison tables, canonical schema) --
+
+async function readText(relativePath) {
+  return readFile(path.join(root, relativePath), "utf8");
+}
+
+function sectionBetween(source, startPattern, endPattern) {
+  const start = source.search(startPattern);
+  assert(start >= 0, `section start not found: ${startPattern}`);
+  const rest = source.slice(start);
+  const end = endPattern ? rest.slice(1).search(endPattern) : -1;
+  return end >= 0 ? rest.slice(0, end + 1) : rest;
+}
+
+function eventNamesInTableRows(section) {
+  return section
+    .split("\n")
+    .map((line) => line.match(/^\| `([A-Z][A-Za-z]*)` \|/))
+    .filter(Boolean)
+    .map((match) => match[1]);
+}
+
+const proposal = await readText("spec/proposal.md");
+const eventComparison = await readText("spec/comparison/event-comparison.md");
+
+// The comparison table is the registry (proposal.md section 3.2); its Tier column is normative.
+const comparisonRows = eventComparison
+  .split("\n")
+  .map((line) => line.match(/^\| `([A-Z][A-Za-z]*)` \| (\*\*Core\*\*|Extended) \|/))
+  .filter(Boolean)
+  .map((match) => ({ name: match[1], tier: match[2] === "**Core**" ? "Core" : "Extended" }));
+
+const comparisonCore = comparisonRows.filter((row) => row.tier === "Core").map((row) => row.name);
+const comparisonExtended = comparisonRows
+  .filter((row) => row.tier === "Extended")
+  .map((row) => row.name);
+
+assert.equal(
+  comparisonRows.length,
+  coreEvents.length + canonicalSchema.$defs.ExtendedEventName.enum.length,
+  "every row of the event comparison table must carry a Tier annotation"
+);
+
+const proposalCore = eventNamesInTableRows(
+  sectionBetween(proposal, /^### 3\.1 Core events/m, /^### 3\.2 /m)
+);
+
+const proposalExtended = [
+  ...sectionBetween(proposal, /^### 3\.2 Extended events/m, /^### 3\.3 /m).matchAll(
+    /`([A-Z][A-Za-z]*)`/g
+  )
+].map((match) => match[1]);
+
+const annexBCore = eventNamesInTableRows(sectionBetween(proposal, /^## Annex B/m, null));
+
+const sorted = (values) => [...values].sort();
+const schemaCore = sorted(coreEvents);
+const schemaExtended = sorted(canonicalSchema.$defs.ExtendedEventName.enum);
+
+for (const [label, actual] of [
+  ["comparison table Tier column", sorted(comparisonCore)],
+  ["proposal.md section 3.1 table", sorted(proposalCore)],
+  ["proposal.md Annex B table", sorted(annexBCore)]
+]) {
+  assert.deepEqual(actual, schemaCore, `${label} must list exactly the 13 Core events`);
+}
+
+for (const [label, actual] of [
+  ["comparison table Tier column", sorted(comparisonExtended)],
+  ["proposal.md section 3.2 prose", sorted(proposalExtended)]
+]) {
+  assert.deepEqual(actual, schemaExtended, `${label} must list exactly the Extended registry`);
+}
+
+// The tool comparison classifies retrieval tools, which section 3.1 defers to tool naming
+// because AI Data Retrieval (OCSF 6005) has no lifecycle event of its own.
+const toolComparison = await readText("spec/comparison/tool-name-comparison.md");
+const retrievalRows = [...toolComparison.matchAll(/^\| ([^|]+?) \| \*\*Data Retrieval \(6005\)\*\* \|/gm)].map(
+  (match) => match[1]
+);
+assert.deepEqual(
+  retrievalRows.sort(),
+  ["File glob", "Read file", "Text search", "Web fetch", "Web search"],
+  "the tool comparison must classify exactly the retrieval capabilities as OCSF 6005"
+);
+
+console.log(
+  `Validated the event registry across 5 sources (${schemaCore.length} Core, ` +
+    `${schemaExtended.length} Extended) and ${retrievalRows.length} retrieval tool classifications.`
+);
